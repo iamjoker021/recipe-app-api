@@ -15,5 +15,7 @@ jobs:
       - name: Lint
         run: docker compose run --rm app sh -c "flake8"
       - name: PyTest
-        run: python -m pytest
+        run: |
+          pip install pytest
+          python -m pytest
       
