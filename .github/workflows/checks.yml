@@ -13,7 +13,7 @@ jobs:
       - name: Test
         run: docker compose run --rm app sh -c "cd app && python manage.py wait_for_db && python manage.py test"
       - name: PyTest
-        run: docker compose run --rm app sh -c "cd app && python manage.py wait_for_db && pytest -p no:cacheprovider"
+        run: docker compose run --rm app sh -c "python manage.py wait_for_db && pytest -p no:cacheprovider"
       # - name: Lint
       #   run: docker compose run --rm app sh -c "flake8"
         
