@@ -10,6 +10,10 @@ from rest_framework.test import APIClient
 
 CREATE_USER_URL = reverse("user:create")
 
+TOKEN_URL = reverse("user:token")
+
+ME_URL = reverse("user:me")
+
 
 def create_user(**params):
     """
@@ -62,3 +66,103 @@ class PublicationApiTests(TestCase):
             email=payload["email"]
         ).exists()
         self.assertFalse(user_exists)
+
+    def test_create_token_for_user(self):
+        user_details = {
+            "email": "test@mail.com",
+            "password": "password",
+            "name": "test Name",
+        }
+        create_user(**user_details)
+
+        payload = {
+            "email": user_details["email"],
+            "password": user_details["password"],
+        }
+
+        res = self.client.post(TOKEN_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn("token", res.data)
+
+    def test_create_token_bad_creds(self):
+        user_details = {
+            "email": "test@mail.com",
+            "password": "password",
+            "name": "test Name",
+        }
+        create_user(**user_details)
+
+        payload = {
+            "email": user_details["email"],
+            "password": "afjbeajf jod e v",
+        }
+
+        res = self.client.post(TOKEN_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn("token", res.data)
+
+    def test_create_token_blank_password(self):
+        user_details = {
+            "email": "test@mail.com",
+            "password": "password",
+            "name": "test Name",
+        }
+        create_user(**user_details)
+
+        payload = {
+            "email": user_details["email"],
+            "password": "",
+        }
+
+        res = self.client.post(TOKEN_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn("token", res.data)
+
+    def test_retrieve_ser_unauthorized(self):
+        res = self.client.get(ME_URL)
+
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class PrivateApiTests(TestCase):
+    """Test Authorized test cases"""
+    def setUp(self):
+        self.client = APIClient()
+        user_details = {
+            "email": "test@mail.com",
+            "password": "password",
+            "name": "test Name",
+        }
+        self.user = create_user(**user_details)
+        self.client.force_authenticate(user=self.user)
+
+    def test_retrieve_profile_success(self):
+        res = self.client.get(ME_URL)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(res.data, {
+            'name': self.user.name,
+            'email': self.user.email,
+        })
+
+    def test_post_me_not_allowed(self):
+        res = self.client.post(ME_URL, {})
+
+        self.assertEqual(res.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_update_user_profile(self):
+        payload = {
+            "password": "newpassword",
+            "name": "udpated test Name",
+        }
+
+        res = self.client.patch(ME_URL, payload)
+        self.user.refresh_from_db()
+
+        self.assertEqual(self.user.name, payload["name"])
+        self.assertTrue(self.user.check_password(payload["password"]))
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
