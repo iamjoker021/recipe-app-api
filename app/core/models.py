@@ -60,13 +60,26 @@ class Tag(models.Model):
         return self.name
 
 
+class Ingredient(models.Model):
+    """Ingrdient Model"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+    name = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.name
+
+
 class Recipe(models.Model):
     """Recipe object"""
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
-    tag = models.ManyToManyField("Tag")
+    tags = models.ManyToManyField("Tag")
+    ingredients = models.ManyToManyField("Ingredient")
     title = models.CharField(max_length=200)
     time_minutes = models.IntegerField()
     price = models.DecimalField(max_digits=5, decimal_places=2)
