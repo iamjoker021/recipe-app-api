@@ -83,3 +83,14 @@ class ModelTests():
         )
 
         assert str(ingrdient) == ingrdient_name
+
+    def test_recipe_file_name_uuild(self, mocker):
+        """Test generate image path"""
+        uuid = "test_uuid"
+        mocker_func = mocker.patch(
+            "core.models.uuid.uuid4",
+        )
+        mocker_func.return_value = uuid
+        file_path = models.recipe_image_file_path(None, "example.jpg")
+
+        assert file_path == f"uploads/recipe/{uuid}.jpg"
