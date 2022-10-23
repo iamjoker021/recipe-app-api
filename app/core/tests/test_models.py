@@ -8,16 +8,19 @@ from django.contrib.auth import get_user_model
 
 from core import models
 
+
+def create_user(email="test@mail.com", password="password"):
+    """Create and return Test User"""
+    return get_user_model().objects.create_user(email=email, password=password)
+
+
 class ModelTests(TestCase):
     """Test models"""
 
     def test_create_user_with_email_success(self):
         email = "test@example.com"
         password = "password"
-        user = get_user_model().objects.create_user(
-            email=email,
-            password=password
-        )
+        user = create_user(email=email, password=password)
 
         self.assertEqual(user.email, email)
         self.assertTrue(user.check_password(password))
@@ -31,7 +34,7 @@ class ModelTests(TestCase):
             ('test4@example.COM', 'test4@example.com'),
         ]
         for email, expected in sample_email:
-            user = get_user_model().objects.create_user(email, 'pass')
+            user = create_user(email)
             self.assertEqual(user.email, expected)
 
     def test_new_user_without_email_rases_error(self):
@@ -50,10 +53,7 @@ class ModelTests(TestCase):
         self.assertTrue(user.is_staff)
 
     def test_create_recipe(self):
-        user = get_user_model().objects.create_user(
-            "test@mail.com"
-            "password"
-        )
+        user = create_user()
         recipe = models.Recipe.objects.create(
             user=user,
             title="Sample Recipe name",
@@ -63,3 +63,11 @@ class ModelTests(TestCase):
         )
 
         self.assertEqual(str(recipe), recipe.title)
+
+    def test_create_tag(self):
+        """Test create tag func"""
+        user = create_user()
+        tag_name = "Tag1"
+        tag = models.Tag.objects.create(user=user, name=tag_name)
+
+        self.assertEqual(str(tag), tag_name)

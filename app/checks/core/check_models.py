@@ -1,21 +1,26 @@
 """
 Test for Models
 """
+from decimal import Decimal
+
 import pytest
 from django.contrib.auth import get_user_model
+
+from core import models
+
+
+def create_user(email="test@mail.com", password="password"):
+    """Create and return Test User"""
+    return get_user_model().objects.create_user(email=email, password=password)
 
 
 @pytest.mark.django_db(True)
 class ModelTests():
 
     def test_create_user_with_email_success(self):
-        email = "test@example.com"
+        email = "test@mail.com"
         password = "password"
-        user = get_user_model()
-        user = get_user_model().objects.create_user(
-            email=email,
-            password=password
-        )
+        user = create_user(email=email, password=password)
 
         assert user.email == email
         assert user.check_password(password)
@@ -29,7 +34,7 @@ class ModelTests():
             ('test4@example.COM', 'test4@example.com'),
         ]
         for email, expected in sample_email:
-            user = get_user_model().objects.create_user(email, 'pass')
+            user = create_user(email=email)
             assert user.email == expected
 
     def test_create_user_without_email_raise_error(sled):
@@ -47,3 +52,23 @@ class ModelTests():
 
         assert user.is_superuser
         assert user.is_staff
+
+    def test_create_recipe(self):
+        user = create_user()
+        recipe = models.Recipe.objects.create(
+            user=user,
+            title="Sample Recipe name",
+            time_minutes=5,
+            price=Decimal("5.50"),
+            description="Sample recipe description"
+        )
+
+        assert str(recipe) == recipe.title
+
+    def test_create_tag(self):
+        """Test create tag func"""
+        user = create_user()
+        tag_name = "Tag1"
+        tag = models.Tag.objects.create(user=user, name=tag_name)
+
+        assert str(tag) == tag_name
