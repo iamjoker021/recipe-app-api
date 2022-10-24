@@ -1,13 +1,18 @@
 """
 Test Ingredient API
 """
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Ingredient
+from core.models import (
+    Ingredient,
+    Recipe,
+)
 
 from recipe.serializers import IngredientSerializer
 
@@ -15,6 +20,21 @@ import pytest
 
 
 INGREDIENTS_URL = reverse("recipe:ingredient-list")
+
+
+def create_recipe(user, **params):
+    """Create and return recipe"""
+    defaults = {
+        "title": "Sample Recipe title",
+        "time_minutes": 7,
+        "price": Decimal("5.99"),
+        "description": "Sample description",
+        "link": "http://example.com/recipe.png",
+    }
+    defaults.update(params)
+
+    recipe = Recipe.objects.create(user=user, **defaults)
+    return recipe
 
 
 def detail_url(ingredient_id):
@@ -104,3 +124,35 @@ class PrivateIngredientAPITests():
         ingredients_exists = Ingredient.objects.filter(user=self.user).exists()
 
         assert not ingredients_exists
+
+    def test_filter_ingrdient_assigned_to_recipe(self, set_up):
+        """Test list ingredieent to those assigned to Recipes"""
+        ingredient1 = Ingredient.objects.create(user=self.user, name="ing1")
+        ingredient2 = Ingredient.objects.create(user=self.user, name="ing2")
+        r1 = create_recipe(user=self.user, title="recipe test")
+        r1.ingredients.add(ingredient1)
+
+        res = self.client.get(INGREDIENTS_URL, {"assigned_only": 1})
+
+        assert res.status_code == status.HTTP_200_OK
+
+        s1 = IngredientSerializer(ingredient1)
+        s2 = IngredientSerializer(ingredient2)
+
+        assert s1.data in res.data
+        assert s2.data not in res.data
+
+    def test_filter_ingredient_unique(self, set_up):
+        """Test filtered ing return unique val"""
+        ing = Ingredient.objects.create(user=self.user, name="ing1")
+        Ingredient.objects.create(user=self.user, name="ing2")
+        r1 = create_recipe(user=self.user, title="recipe1")
+        r2 = create_recipe(user=self.user, title="recipe2")
+        r1.ingredients.add(ing)
+        r2.ingredients.add(ing)
+
+        res = self.client.get(INGREDIENTS_URL, {"assigned_only": 1})
+
+        assert res.status_code == status.HTTP_200_OK
+
+        assert len(res.data) == 1
